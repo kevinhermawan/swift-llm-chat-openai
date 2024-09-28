@@ -6,9 +6,6 @@
 //
 
 import Foundation
-#if canImport(FoundationNetworking)
-import FoundationNetworking
-#endif
 
 /// A struct that facilitates interactions with OpenAI and OpenAI-compatible chat completion APIs.
 public struct LLMChatOpenAI {
