@@ -1,5 +1,7 @@
 # LLMChatOpenAI
 
+[![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fkevinhermawan%2Fswift-llm-chat-openai%2Fbadge%3Ftype%3Dswift-versions)](https://swiftpackageindex.com/kevinhermawan/swift-llm-chat-openai) [![](https://img.shields.io/endpoint?url=https%3A%2F%2Fswiftpackageindex.com%2Fapi%2Fpackages%2Fkevinhermawan%2Fswift-llm-chat-openai%2Fbadge%3Ftype%3Dplatforms)](https://swiftpackageindex.com/kevinhermawan/swift-llm-chat-openai)
+
 Interact with OpenAI and OpenAI-compatible chat completion APIs in a simple and elegant way.
 
 ### Overview
@@ -171,7 +173,7 @@ let options = ChatOptions(tools: [recommendBookTool])
 
 Task {
     do {
-        let completion = try await viewModel.chat.send(model: viewModel.selectedModel, messages: messages, options: options)
+        let completion = try await chat.send(model: "gpt-4o", messages: messages, options: options)
 
         if let toolCalls = completion.choices.first?.message.toolCalls {
             print(toolCalls.first?.function.arguments ?? "")
@@ -208,7 +210,7 @@ let options = ChatOptions(responseFormat: responseFormat)
 
 Task {
    do {
-       let completion = try await viewModel.chat.send(model: viewModel.selectedModel, messages: messages, options: options)
+       let completion = try await chat.send(model: "gpt-4o", messages: messages, options: options)
 
        print(completion.choices.first?.message.content ?? "")
    } catch {

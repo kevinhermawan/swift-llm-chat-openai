@@ -144,7 +144,7 @@ let options = ChatOptions(tools: [recommendBookTool])
 
 Task {
     do {
-        let completion = try await viewModel.chat.send(model: viewModel.selectedModel, messages: messages, options: options)
+        let completion = try await chat.send(model: "gpt-4o", messages: messages, options: options)
 
         if let toolCalls = completion.choices.first?.message.toolCalls {
             print(toolCalls.first?.function.arguments ?? "")
@@ -181,7 +181,7 @@ let options = ChatOptions(responseFormat: responseFormat)
 
 Task {
    do {
-       let completion = try await viewModel.chat.send(model: viewModel.selectedModel, messages: messages, options: options)
+       let completion = try await chat.send(model: "gpt-4o", messages: messages, options: options)
 
        print(completion.choices.first?.message.content ?? "")
    } catch {
