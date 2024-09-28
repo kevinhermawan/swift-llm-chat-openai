@@ -54,6 +54,13 @@ struct AppView: View {
                                 }
                         }
                         
+                        NavigationLink("Multimodal") {
+                            MultimodalView()
+                                .onAppear {
+                                    viewModel.isUsingCustomApi = true
+                                }
+                        }
+                        
                         NavigationLink("Tool Calling") {
                             ToolCallingView()
                                 .onAppear {
