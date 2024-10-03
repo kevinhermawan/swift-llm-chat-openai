@@ -1,3 +1,8 @@
+# 1.0.2
+
+- chore(Playground): adds multimodal example to OpenAI-compatible section by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/3
+- feat: adds prompt caching usage by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/4
+
 # 1.0.1
 
 - chore: adds SPI badges by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/1
