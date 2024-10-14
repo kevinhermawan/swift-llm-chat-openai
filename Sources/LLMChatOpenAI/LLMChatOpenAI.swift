@@ -11,20 +11,20 @@ import Foundation
 public struct LLMChatOpenAI {
     private let apiKey: String
     private let endpoint: URL
-    private var customHeaders: [String: String]? = nil
+    private var headers: [String: String]? = nil
     
     /// Creates a new instance of ``LLMChatOpenAI``.
     ///
     /// - Parameters:
     ///   - apiKey: Your OpenAI API key.
     ///   - endpoint: The OpenAI-compatible endpoint.
-    ///   - customHeaders: Additional HTTP headers to include in the requests.
+    ///   - headers: Additional HTTP headers to include in the requests.
     ///
     /// - Note: Make sure to include the complete URL for the `endpoint`, including the protocol (http:// or https://) and its path.
-    public init(apiKey: String, endpoint: URL? = nil, customHeaders: [String: String]? = nil) {
+    public init(apiKey: String, endpoint: URL? = nil, headers: [String: String]? = nil) {
         self.apiKey = apiKey
         self.endpoint = endpoint ?? URL(string: "https://api.openai.com/v1/chat/completions")!
-        self.customHeaders = customHeaders
+        self.headers = headers
     }
 }
 
@@ -95,24 +95,24 @@ extension LLMChatOpenAI {
 
 // MARK: - Helper Methods
 private extension LLMChatOpenAI {
-    var defaultHeaders: [String: String] {
-        var headers = [
+    var allHeaders: [String: String] {
+        var defaultHeaders = [
             "Content-Type": "application/json",
             "Authorization": "Bearer \(apiKey)"
         ]
         
-        if let customHeaders {
-            headers.merge(customHeaders) { _, new in new }
+        if let headers {
+            defaultHeaders.merge(headers) { _, new in new }
         }
         
-        return headers
+        return defaultHeaders
     }
     
     func createRequest(for url: URL, with body: RequestBody) throws -> URLRequest {
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.httpBody = try JSONEncoder().encode(body)
-        request.allHTTPHeaderFields = defaultHeaders
+        request.allHTTPHeaderFields = allHeaders
         
         return request
     }
