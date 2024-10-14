@@ -63,9 +63,17 @@ final class ChatCompletionTests: XCTestCase {
         
         URLProtocolMock.mockData = mockResponseString.data(using: .utf8)
         let completion = try await chat.send(model: "gpt-4o", messages: messages)
-        let choice = completion.choices.first?.message.content
+        let choice = completion.choices.first
+        let message = choice?.message
         
-        XCTAssertEqual(choice, "The capital of Indonesia is Jakarta.")
+        XCTAssertEqual(completion.id, "chatcmpl-123")
+        XCTAssertEqual(completion.model, "gpt-4o")
+        
+        // Content
+        XCTAssertEqual(message?.role, "assistant")
+        XCTAssertEqual(message?.content, "The capital of Indonesia is Jakarta.")
+        
+        // Usage
         XCTAssertEqual(completion.usage?.promptTokens, 5)
         XCTAssertEqual(completion.usage?.completionTokens, 10)
         XCTAssertEqual(completion.usage?.totalTokens, 15)

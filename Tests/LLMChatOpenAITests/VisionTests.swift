@@ -1,5 +1,5 @@
 //
-//  MultimodalTests.swift
+//  VisionTests.swift
 //  LLMChatOpenAI
 //
 //  Created by Kevin Hermawan on 9/28/24.
@@ -8,7 +8,7 @@
 import XCTest
 @testable import LLMChatOpenAI
 
-final class MultimodalTests: XCTestCase {
+final class VisionTests: XCTestCase {
     var chat: LLMChatOpenAI!
     var messages: [ChatMessage]!
     
@@ -61,11 +61,18 @@ final class MultimodalTests: XCTestCase {
         """
         
         URLProtocolMock.mockData = mockResponseString.data(using: .utf8)
-        
         let completion = try await chat.send(model: "gpt-4o", messages: messages)
-        let content = completion.choices.first?.message.content
+        let choice = completion.choices.first
+        let message = choice?.message
         
-        XCTAssertEqual(content, "The image shows a cute kitten or young cat.")
+        XCTAssertEqual(completion.id, "chatcmpl-123")
+        XCTAssertEqual(completion.model, "gpt-4o")
+        
+        // Content
+        XCTAssertEqual(message?.role, "assistant")
+        XCTAssertEqual(message?.content, "The image shows a cute kitten or young cat.")
+        
+        // Usage
         XCTAssertEqual(completion.usage?.promptTokens, 50)
         XCTAssertEqual(completion.usage?.completionTokens, 80)
         XCTAssertEqual(completion.usage?.totalTokens, 130)

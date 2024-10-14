@@ -4,7 +4,7 @@ Interact with OpenAI and OpenAI-compatible chat completion APIs in a simple and 
 
 ### Overview
 
-``LLMChatOpenAI`` is a simple yet powerful Swift package that elegantly encapsulates the complexity of interacting with OpenAI and OpenAI-compatible chat completion APIs. It offers a complete set of Swift-idiomatic methods for sending chat completion requests, streaming responses, and retrieving available models.
+``LLMChatOpenAI`` is a simple yet powerful Swift package that elegantly encapsulates the complexity of interacting with OpenAI and OpenAI-compatible chat completion APIs. It offers a complete set of Swift-idiomatic methods for sending chat completion requests and streaming responses.
 
 ## Usage
 
@@ -16,11 +16,10 @@ import LLMChatOpenAI
 // Basic initialization
 let chat = LLMChatOpenAI(apiKey: "<YOUR_OPENAI_API_KEY>")
 
-// Initialize with custom endpoints and headers
+// Initialize with custom endpoint and headers
 let chat = LLMChatOpenAI(
     apiKey: "<YOUR_API_KEY>",
     endpoint: "https://custom-api.example.com/v1/chat/completions",
-    modelEndpoint: "https://custom-api.example.com/v1/models",
     customHeaders: ["Custom-Header": "Value"]
 )
 ```
@@ -69,22 +68,6 @@ let task = Task {
 
 // To cancel completion
 task.cancel()
-```
-
-#### Retrieving Available Models
-
-```swift
-Task {
-    do {
-        let models = try await chat.models()
-
-        for model in models.data {
-            print("Model ID: \(model.id)")
-        }
-    } catch {
-        print(String(describing: error))
-    }
-}
 ```
 
 ### Advanced Usage

@@ -6,66 +6,145 @@
 //
 
 import Foundation
+import AIModelRetriever
 import LLMChatOpenAI
+
+enum ServiceProvider: String, CaseIterable {
+    case openai = "OpenAI"
+    case openRouter = "OpenRouter"
+    case groq = "Groq"
+}
 
 @Observable
 final class AppViewModel {
-    var streamMode: Bool = false
-    var chat: LLMChatOpenAI
+    var stream: Bool = false
+    var openaiAPIKey: String = ""
+    var openRouterAPIKey: String = ""
+    var groqAPIKey: String = ""
     
-    var isUsingCustomApi: Bool = false {
-        didSet {
-            configureChat()
-        }
-    }
-    
-    var openaiApiKey: String = ""
-    var customApiKey: String = ""
-    var customChatEndpoint: String = "https://api.groq.com/openai/v1/chat/completions"
-    var customModelEndpoint: String = "https://api.groq.com/openai/v1/models"
+    var chat = LLMChatOpenAI(apiKey: "")
+    var modelRetriever = AIModelRetriever()
     
     var models = [String]()
     var selectedModel: String = ""
+    var systemPrompt: String = "You're a helpful AI assistant."
+    var temperature = 0.5
     
     init() {
-        chat = LLMChatOpenAI(apiKey: "")
-        
-        loadSettings()
-    }
-    
-    private func loadSettings() {
-        isUsingCustomApi = UserDefaults.standard.bool(forKey: "isUsingCustomApi")
-        openaiApiKey = UserDefaults.standard.string(forKey: "openaiApiKey") ?? ""
-        customApiKey = UserDefaults.standard.string(forKey: "customApiKey") ?? ""
-        customChatEndpoint = UserDefaults.standard.string(forKey: "customChatEndpoint") ?? customChatEndpoint
-        customModelEndpoint = UserDefaults.standard.string(forKey: "customModelEndpoint") ?? customModelEndpoint
-        
-        configureChat()
+        loadDefaults()
     }
     
     func saveSettings() {
-        UserDefaults.standard.set(isUsingCustomApi, forKey: "isUsingCustomApi")
-        UserDefaults.standard.set(openaiApiKey, forKey: "openaiApiKey")
-        UserDefaults.standard.set(customApiKey, forKey: "customApiKey")
-        UserDefaults.standard.set(customChatEndpoint, forKey: "customChatEndpoint")
-        UserDefaults.standard.set(customModelEndpoint, forKey: "customModelEndpoint")
+        UserDefaults.standard.set(openaiAPIKey, forKey: "openaiAPIKey")
+        UserDefaults.standard.set(openRouterAPIKey, forKey: "openRouterAPIKey")
+        UserDefaults.standard.set(groqAPIKey, forKey: "groqAPIKey")
         
-        configureChat()
+        loadDefaults()
     }
     
-    private func configureChat() {
-        if isUsingCustomApi, let customChatEndpointURL = URL(string: customChatEndpoint), let customModelEndpointURL = URL(string: customModelEndpoint) {
-            chat = LLMChatOpenAI(apiKey: customApiKey, endpoint: customChatEndpointURL, modelEndpoint: customModelEndpointURL)
-        } else {
-            chat = LLMChatOpenAI(apiKey: openaiApiKey)
+    private func loadDefaults() {
+        if let newAPIKey = UserDefaults.standard.string(forKey: "openaiAPIKey") {
+            self.openaiAPIKey = newAPIKey
+        }
+        
+        if let newAPIKey = UserDefaults.standard.string(forKey: "openRouterAPIKey") {
+            self.openRouterAPIKey = newAPIKey
+        }
+        
+        if let newAPIKey = UserDefaults.standard.string(forKey: "groqAPIKey") {
+            self.groqAPIKey = newAPIKey
         }
     }
     
-    func fetchModels() async throws {
-        let response = try await self.chat.models()
+    func setup(for provider: ServiceProvider) {
+        switch provider {
+        case .openai:
+            setupOpenAI()
+        case .openRouter:
+            setupOpenRouter()
+        case .groq:
+            setupGroq()
+        }
+    }
+}
+
+// MARK: - OpenAI
+private extension AppViewModel {
+    func setupOpenAI() {
+        chat = LLMChatOpenAI(apiKey: openaiAPIKey)
         
-        if let firstModel = response.data.first?.id {
-            models = response.data.map({ $0.id })
+        Task {
+            try await fetchOpenAIModels()
+        }
+    }
+    
+    func fetchOpenAIModels() async throws {
+        let llmModels = try await modelRetriever.openAI(apiKey: openaiAPIKey)
+        models = llmModels
+            .filter {
+                $0.id.contains("o1") ||
+                $0.id.contains("gpt")
+            }
+            .map(\.id)
+        
+        if let firstModel = models.first {
+            selectedModel = firstModel
+        }
+    }
+}
+
+// MARK: - OpenRouter
+private extension AppViewModel {
+    func setupOpenRouter() {
+        guard let endpointURL = URL(string: "https://openrouter.ai/api/v1/chat/completions") else { return }
+        
+        chat = LLMChatOpenAI(apiKey: openRouterAPIKey, endpoint: endpointURL)
+        
+        Task {
+            try await fetchOpenRouterModels()
+        }
+    }
+    
+    func fetchOpenRouterModels() async throws {
+        guard let endpointURL = URL(string: "https://openrouter.ai/api/v1/models") else { return }
+        
+        let llmModels = try await modelRetriever.openAI(apiKey: openRouterAPIKey, endpoint: endpointURL)
+        models = llmModels
+            .filter {
+                $0.id.contains("grok") ||
+                $0.id.contains("llama-3.2")
+            }
+            .map(\.id)
+        
+        if let firstModel = models.first {
+            selectedModel = firstModel
+        }
+    }
+}
+
+// MARK: - Groq
+private extension AppViewModel {
+    func setupGroq() {
+        guard let endpointURL = URL(string: "https://api.groq.com/openai/v1/chat/completions") else { return }
+        
+        chat = LLMChatOpenAI(apiKey: groqAPIKey, endpoint: endpointURL)
+        
+        Task {
+            try await fetchGroqModels()
+        }
+    }
+    
+    func fetchGroqModels() async throws {
+        guard let endpointURL = URL(string: "https://api.groq.com/openai/v1/models") else { return }
+        
+        let llmModels = try await modelRetriever.openAI(apiKey: groqAPIKey, endpoint: endpointURL)
+        models = llmModels
+            .filter {
+                $0.id.contains("llama-3.2")
+            }
+            .map(\.id)
+        
+        if let firstModel = models.first {
             selectedModel = firstModel
         }
     }
