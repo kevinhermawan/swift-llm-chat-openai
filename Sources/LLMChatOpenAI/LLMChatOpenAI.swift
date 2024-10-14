@@ -11,31 +11,19 @@ import Foundation
 public struct LLMChatOpenAI {
     private let apiKey: String
     private let endpoint: URL
-    private let modelEndpoint: URL
     private var customHeaders: [String: String]? = nil
     
     /// Creates a new instance of ``LLMChatOpenAI``.
     ///
-    /// - Parameter apiKey: Your OpenAI API key.
-    public init(apiKey: String) {
-        self.apiKey = apiKey
-        self.endpoint = URL(string: "https://api.openai.com/v1/chat/completions")!
-        self.modelEndpoint = URL(string: "https://api.openai.com/v1/models")!
-    }
-    
-    /// Creates a new instance of ``LLMChatOpenAI`` with custom endpoints and headers.
-    ///
     /// - Parameters:
-    ///   - apiKey: Your OpenAI-compatible API key.
-    ///   - endpoint: The OpenAI-compatible endpoint for the chat completions API, including the scheme.
-    ///   - modelEndpoint: The OpenAI-compatible endpoint for retrieving available models, including the scheme.
+    ///   - apiKey: Your OpenAI API key.
+    ///   - endpoint: The OpenAI-compatible endpoint.
     ///   - customHeaders: Additional HTTP headers to include in the requests.
     ///
-    /// - Note: Ensure you provide the complete URLs for both `endpoint` and `modelEndpoint`, including the scheme (http:// or https://) and the full path.
-    public init(apiKey: String, endpoint: URL, modelEndpoint: URL, customHeaders: [String: String]? = nil) {
+    /// - Note: Make sure to include the complete URL for the `endpoint`, including the protocol (http:// or https://) and its path.
+    public init(apiKey: String, endpoint: URL? = nil, customHeaders: [String: String]? = nil) {
         self.apiKey = apiKey
-        self.endpoint = endpoint
-        self.modelEndpoint = modelEndpoint
+        self.endpoint = endpoint ?? URL(string: "https://api.openai.com/v1/chat/completions")!
         self.customHeaders = customHeaders
     }
 }
@@ -102,20 +90,6 @@ extension LLMChatOpenAI {
                 }
             }
         }
-    }
-    
-    /// Retrieves the list of available models.
-    ///
-    /// - Returns: A ``ChatModel`` object containing information about available models.
-    public func models() async throws -> ChatModel {
-        var request = URLRequest(url: modelEndpoint)
-        request.httpMethod = "GET"
-        request.allHTTPHeaderFields = defaultHeaders
-        
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validateHTTPResponse(response)
-        
-        return try JSONDecoder().decode(ChatModel.self, from: data)
     }
 }
 

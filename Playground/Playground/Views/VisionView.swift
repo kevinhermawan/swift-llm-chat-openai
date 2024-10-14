@@ -1,5 +1,5 @@
 //
-//  ResponseFormatView.swift
+//  VisionView.swift
 //  Playground
 //
 //  Created by Kevin Hermawan on 9/27/24.
@@ -8,47 +8,28 @@
 import SwiftUI
 import LLMChatOpenAI
 
-struct ResponseFormatView: View {
+struct VisionView: View {
     let provider: ServiceProvider
     
     @Environment(AppViewModel.self) private var viewModel
     @State private var isPreferencesPresented: Bool = false
     
-    @State private var prompt: String = "Can you recommend a philosophy book?"
-    @State private var responseFormatType: ChatOptions.ResponseFormat.ResponseType = .jsonSchema
+    @State private var imageDetail: ChatMessage.Content.ImageDetail = .auto
+    @State private var image: String = "https://images.pexels.com/photos/45201/kitty-cat-kitten-pet-45201.jpeg"
+    @State private var prompt: String = "What is in this image?"
     
     @State private var response: String = ""
     @State private var inputTokens: Int = 0
     @State private var outputTokens: Int = 0
     @State private var totalTokens: Int = 0
     
-    private let systemPrompt = "You are a helpful assistant. Respond with a JSON object containing the book title and author."
-    
-    private let jsonSchema = ChatOptions.ResponseFormat.Schema(
-        name: "get_book_info",
-        schema: .object(
-            properties: [
-                "title": .string(description: "The title of the book"),
-                "author": .string(description: "The author of the book")
-            ],
-            required: ["title", "author"]
-        )
-    )
-    
     var body: some View {
         @Bindable var viewModelBindable = viewModel
         
         VStack {
             Form {
-                Section("Preferences") {
-                    Picker("Response Format", selection: $responseFormatType) {
-                        ForEach(ChatOptions.ResponseFormat.ResponseType.allCases, id: \.rawValue) { format in
-                            Text(format.rawValue).tag(format)
-                        }
-                    }
-                }
-                
                 Section("Prompt") {
+                    TextField("Image", text: $image)
                     TextField("Prompt", text: $prompt)
                 }
                 
@@ -61,11 +42,12 @@ struct ResponseFormatView: View {
             
             VStack {
                 SendButton(stream: viewModel.stream, onSend: onSend, onStream: onStream)
+                    .disabled(viewModel.models.isEmpty)
             }
         }
         .toolbar {
             ToolbarItem(placement: .principal) {
-                NavigationTitle("Response Format")
+                NavigationTitle("Vision")
             }
             
             ToolbarItem(placement: .primaryAction) {
@@ -87,14 +69,10 @@ struct ResponseFormatView: View {
         clear()
         
         let messages = [
-            ChatMessage(role: .system, content: systemPrompt),
-            ChatMessage(role: .user, content: prompt)
+            ChatMessage(role: .user, content: [.text(prompt), .image(image, detail: imageDetail)])
         ]
         
-        let options = ChatOptions(
-            responseFormat: .init(type: responseFormatType, jsonSchema: jsonSchema),
-            temperature: viewModel.temperature
-        )
+        let options = ChatOptions(temperature: viewModel.temperature)
         
         Task {
             do {
@@ -119,14 +97,10 @@ struct ResponseFormatView: View {
         clear()
         
         let messages = [
-            ChatMessage(role: .system, content: systemPrompt),
-            ChatMessage(role: .user, content: prompt)
+            ChatMessage(role: .user, content: [.text(prompt), .image(image, detail: imageDetail)])
         ]
         
-        let options = ChatOptions(
-            responseFormat: .init(type: responseFormatType, jsonSchema: jsonSchema),
-            temperature: viewModel.temperature
-        )
+        let options = ChatOptions(temperature: viewModel.temperature)
         
         Task {
             do {

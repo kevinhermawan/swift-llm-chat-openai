@@ -1,5 +1,5 @@
 //
-//  ToolCallingTests.swift
+//  ToolUseTests.swift
 //  LLMChatOpenAI
 //
 //  Created by Kevin Hermawan on 9/28/24.
@@ -8,15 +8,17 @@
 import XCTest
 @testable import LLMChatOpenAI
 
-final class ToolCallingTests: XCTestCase {
+final class ToolUseTests: XCTestCase {
     var chat: LLMChatOpenAI!
-    var recommendBookTool: ChatOptions.Tool!
+    var messages: [ChatMessage]!
+    var options: ChatOptions!
     
     override func setUp() {
         super.setUp()
         
         chat = LLMChatOpenAI(apiKey: "mock-api-key")
-        recommendBookTool = ChatOptions.Tool(
+        
+        let recommendBookTool = ChatOptions.Tool(
             type: "function",
             function: .init(
                 name: "recommend_book",
@@ -34,12 +36,16 @@ final class ToolCallingTests: XCTestCase {
             )
         )
         
+        messages = [ChatMessage(role: .user, content: "Recommend a book similar to '1984'")]
+        options = ChatOptions(tools: [recommendBookTool])
+        
         URLProtocol.registerClass(URLProtocolMock.self)
     }
     
     override func tearDown() {
         chat = nil
-        recommendBookTool = nil
+        messages = nil
+        options = nil
         URLProtocolMock.mockData = nil
         URLProtocolMock.mockError = nil
         URLProtocolMock.mockStreamData = nil
@@ -85,15 +91,20 @@ final class ToolCallingTests: XCTestCase {
         
         URLProtocolMock.mockData = mockResponseString.data(using: .utf8)
         
-        let messages = [ChatMessage(role: .user, content: "Recommend a book similar to '1984'")]
-        let options = ChatOptions(tools: [recommendBookTool])
-        
         let completion = try await chat.send(model: "gpt-4o", messages: messages, options: options)
-        let toolCall = completion.choices.first?.message.toolCalls?.first
+        let choice = completion.choices.first
+        let message = choice?.message
         
-        XCTAssertEqual(toolCall?.function.name, "recommend_book")
-        XCTAssertTrue(toolCall?.function.arguments.contains("1984") ?? false)
-        XCTAssertTrue(toolCall?.function.arguments.contains("fiction") ?? false)
+        XCTAssertEqual(completion.id, "chatcmpl-123")
+        XCTAssertEqual(completion.model, "gpt-4o")
+        
+        // Content
+        XCTAssertEqual(message?.role, "assistant")
+        XCTAssertEqual(message?.toolCalls?.first?.function.name, "recommend_book")
+        XCTAssertTrue(message?.toolCalls?.first?.function.arguments.contains("1984") ?? false)
+        XCTAssertTrue(message?.toolCalls?.first?.function.arguments.contains("fiction") ?? false)
+        
+        // Usage
         XCTAssertEqual(completion.usage?.promptTokens, 20)
         XCTAssertEqual(completion.usage?.completionTokens, 30)
         XCTAssertEqual(completion.usage?.totalTokens, 50)
@@ -107,8 +118,6 @@ final class ToolCallingTests: XCTestCase {
             "data: [DONE]\n\n"
         ]
         
-        let messages = [ChatMessage(role: .user, content: "Recommend a book similar to '1984'")]
-        let options = ChatOptions(tools: [recommendBookTool])
         var receivedArguments = ""
         
         for try await chunk in chat.stream(model: "gpt-4o", messages: messages, options: options) {

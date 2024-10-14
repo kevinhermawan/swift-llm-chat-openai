@@ -11,19 +11,14 @@ import XCTest
 final class ResponseFormatTests: XCTestCase {
     var chat: LLMChatOpenAI!
     var messages: [ChatMessage]!
-    var responseFormat: ChatOptions.ResponseFormat!
+    var options: ChatOptions!
     
     override func setUp() {
         super.setUp()
         
         chat = LLMChatOpenAI(apiKey: "mock-api-key")
         
-        messages = [
-            ChatMessage(role: .system, content: "You are a helpful assistant. Respond with a JSON object containing the book title and author."),
-            ChatMessage(role: .user, content: "Can you recommend a philosophy book?")
-        ]
-        
-        responseFormat = ChatOptions.ResponseFormat(
+        let responseFormat = ChatOptions.ResponseFormat(
             type: .jsonSchema,
             jsonSchema: .init(
                 name: "get_book_info",
@@ -37,13 +32,20 @@ final class ResponseFormatTests: XCTestCase {
             )
         )
         
+        messages = [
+            ChatMessage(role: .system, content: "You are a helpful assistant. Respond with a JSON object containing the book title and author."),
+            ChatMessage(role: .user, content: "Can you recommend a philosophy book?")
+        ]
+        
+        options = ChatOptions(responseFormat: responseFormat)
+        
         URLProtocol.registerClass(URLProtocolMock.self)
     }
     
     override func tearDown() {
         chat = nil
         messages = nil
-        responseFormat = nil
+        options = nil
         URLProtocolMock.mockData = nil
         URLProtocolMock.mockError = nil
         URLProtocolMock.mockStreamData = nil
@@ -79,11 +81,18 @@ final class ResponseFormatTests: XCTestCase {
         
         URLProtocolMock.mockData = mockResponseString.data(using: .utf8)
         
-        let options = ChatOptions(responseFormat: responseFormat)
         let completion = try await chat.send(model: "gpt-4o", messages: messages, options: options)
-        let content = completion.choices.first?.message.content
+        let choice = completion.choices.first
+        let message = choice?.message
         
-        XCTAssertEqual(content, "{\"title\":\"The Republic\",\"author\":\"Plato\"}")
+        XCTAssertEqual(completion.id, "chatcmpl-123")
+        XCTAssertEqual(completion.model, "gpt-4o")
+        
+        // Content
+        XCTAssertEqual(message?.role, "assistant")
+        XCTAssertEqual(message?.content, "{\"title\":\"The Republic\",\"author\":\"Plato\"}")
+        
+        // Usage
         XCTAssertEqual(completion.usage?.promptTokens, 20)
         XCTAssertEqual(completion.usage?.completionTokens, 30)
         XCTAssertEqual(completion.usage?.totalTokens, 50)
@@ -97,7 +106,6 @@ final class ResponseFormatTests: XCTestCase {
             "data: [DONE]\n\n"
         ]
         
-        let options = ChatOptions(responseFormat: responseFormat)
         var receivedContent = ""
         
         for try await chunk in chat.stream(model: "gpt-4o", messages: messages, options: options) {

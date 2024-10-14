@@ -9,81 +9,47 @@ import SwiftUI
 
 struct AppView: View {
     @Environment(AppViewModel.self) private var viewModel
-    @State private var isSettingsPresented: Bool = false
+    @State private var isPreferencesPresented: Bool = false
     
     var body: some View {
         NavigationStack {
             VStack {
                 Form {
-                    Section("OpenAI") {
-                        NavigationLink("Chat Completion") {
-                            ChatCompletionView()
-                                .onAppear {
-                                    viewModel.isUsingCustomApi = false
+                    ForEach(ServiceProvider.allCases, id: \.rawValue) { provider in
+                        Section(provider.rawValue) {
+                            NavigationLink("Chat") {
+                                ChatView(provider: provider)
+                            }
+                            
+                            NavigationLink("Vision") {
+                                VisionView(provider: provider)
+                            }
+                            
+                            NavigationLink("Tool Use") {
+                                ToolUseView(provider: provider)
+                            }
+                            
+                            if provider == .openai {
+                                NavigationLink("Response Format") {
+                                    ResponseFormatView(provider: provider)
                                 }
+                            }
                         }
-                        
-                        NavigationLink("Multimodal") {
-                            MultimodalView()
-                                .onAppear {
-                                    viewModel.isUsingCustomApi = false
-                                }
-                        }
-                        
-                        NavigationLink("Tool Calling") {
-                            ToolCallingView()
-                                .onAppear {
-                                    viewModel.isUsingCustomApi = false
-                                }
-                        }
-                        
-                        NavigationLink("Response Format") {
-                            ResponseFormatView()
-                                .onAppear {
-                                    viewModel.isUsingCustomApi = false
-                                }
-                        }
+                        .disabled(provider == .openai && viewModel.openaiAPIKey.isEmpty)
+                        .disabled(provider == .openRouter && viewModel.openRouterAPIKey.isEmpty)
+                        .disabled(provider == .groq && viewModel.groqAPIKey.isEmpty)
                     }
-                    .disabled(viewModel.openaiApiKey.isEmpty)
-                    
-                    Section("OpenAI-Compatible") {
-                        NavigationLink("Chat Completion") {
-                            ChatCompletionView()
-                                .onAppear {
-                                    viewModel.isUsingCustomApi = true
-                                }
-                        }
-                        
-                        NavigationLink("Multimodal") {
-                            MultimodalView()
-                                .onAppear {
-                                    viewModel.isUsingCustomApi = true
-                                }
-                        }
-                        
-                        NavigationLink("Tool Calling") {
-                            ToolCallingView()
-                                .onAppear {
-                                    viewModel.isUsingCustomApi = true
-                                }
-                        }
-                    }
-                    .disabled(viewModel.customApiKey.isEmpty)
-                    .disabled(viewModel.customChatEndpoint.isEmpty)
-                    .disabled(viewModel.customModelEndpoint.isEmpty)
                 }
             }
             .navigationTitle("OpenAI Playground")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button("Settings", systemImage: "gearshape") {
-                        isSettingsPresented = true
-                    }
+                ToolbarItem(placement: .primaryAction) {
+                    Button("Preferences", systemImage: "gearshape", action: { isPreferencesPresented.toggle() })
                 }
             }
-            .sheet(isPresented: $isSettingsPresented) {
-                SettingsView()
+            .sheet(isPresented: $isPreferencesPresented) {
+                PreferencesView()
             }
         }
     }
