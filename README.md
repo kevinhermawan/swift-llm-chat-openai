@@ -101,7 +101,7 @@ task.cancel()
 
 ### Advanced Usage
 
-#### Multimodal
+#### Vision
 
 ```swift
 let messages = [
@@ -125,7 +125,9 @@ Task {
 }
 ```
 
-#### Tool Calling
+To learn more about vision, check out the [OpenAI documentation](https://platform.openai.com/docs/guides/vision).
+
+#### Function Calling
 
 ```swift
 let messages = [
@@ -167,7 +169,9 @@ Task {
 }
 ```
 
-#### Response Format
+To learn more about function calling, check out the [OpenAI documentation](https://platform.openai.com/docs/guides/function-calling).
+
+#### Structured Outputs
 
 ```swift
 let messages = [
@@ -202,14 +206,16 @@ Task {
 }
 ```
 
-## Donations
+To learn more about structured outputs, check out the [OpenAI documentation](https://platform.openai.com/docs/guides/structured-outputs/introduction).
+
+## Support
 
 If you find `LLMChatOpenAI` helpful and would like to support its development, consider making a donation. Your contribution helps maintain the project and develop new features.
 
 - [GitHub Sponsors](https://github.com/sponsors/kevinhermawan)
 - [Buy Me a Coffee](https://buymeacoffee.com/kevinhermawan)
 
-Your support is greatly appreciated!
+Your support is greatly appreciated! ❤️
 
 ## Contributing
 
