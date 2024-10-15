@@ -19,8 +19,8 @@ let chat = LLMChatOpenAI(apiKey: "<YOUR_OPENAI_API_KEY>")
 // Initialize with custom endpoint and headers
 let chat = LLMChatOpenAI(
     apiKey: "<YOUR_API_KEY>",
-    endpoint: "https://custom-api.example.com/v1/chat/completions",
-    customHeaders: ["Custom-Header": "Value"]
+    endpoint: URL(string: "https://custom-api.example.com/v1/chat/completions")!,
+    headers: ["Custom-Header": "Value"]
 )
 ```
 
