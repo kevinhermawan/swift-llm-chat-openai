@@ -1,3 +1,8 @@
+# 1.1.0
+
+- refactor: removes `models()` by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/6
+- refactor: renames `customHeaders` to `headers` by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/7
+
 # 1.0.2
 
 - chore(Playground): adds multimodal example to OpenAI-compatible section by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/3
