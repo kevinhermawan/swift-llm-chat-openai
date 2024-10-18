@@ -1,3 +1,8 @@
+# 1.1.1
+
+- docs: adds more information in advanced usage by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/8
+- feat: adds fallback models support for OpenRouter by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/9
+
 # 1.1.0
 
 - refactor: removes `models()` by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/6
