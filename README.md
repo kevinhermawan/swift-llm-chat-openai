@@ -99,6 +99,34 @@ let task = Task {
 task.cancel()
 ```
 
+#### Using Fallback Models (OpenRouter only)
+
+```swift
+Task {
+    do {
+        let completion = try await chat.send(models: ["openai/gpt-4o", "mistralai/mixtral-8x7b-instruct"], messages: messages)
+
+        print(completion.choices.first?.message.content ?? "No response")
+    } catch {
+        print(String(describing: error))
+    }
+}
+
+Task {
+    do {
+        for try await chunk in chat.stream(models: ["openai/gpt-4o", "mistralai/mixtral-8x7b-instruct"], messages: messages) {
+            if let content = chunk.choices.first?.delta.content {
+                print(content, terminator: "")
+            }
+        }
+    } catch {
+        print(String(describing: error))
+    }
+}
+```
+
+> **Note**: Fallback model functionality is only supported when using OpenRouter. If you use the fallback models method (`send(models:)` or `stream(models:)`) with other providers, only the first model in the array will be used, and the rest will be ignored. To learn more about fallback models, check out the [OpenRouter documentation](https://openrouter.ai/docs/model-routing).
+
 ### Advanced Usage
 
 #### Vision

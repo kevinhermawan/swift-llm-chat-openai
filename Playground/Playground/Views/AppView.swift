@@ -34,6 +34,12 @@ struct AppView: View {
                                     ResponseFormatView(provider: provider)
                                 }
                             }
+                            
+                            if provider == .openRouter {
+                                NavigationLink("Fallback Model") {
+                                    FallbackModelView(provider: provider)
+                                }
+                            }
                         }
                         .disabled(provider == .openai && viewModel.openaiAPIKey.isEmpty)
                         .disabled(provider == .openRouter && viewModel.openRouterAPIKey.isEmpty)
