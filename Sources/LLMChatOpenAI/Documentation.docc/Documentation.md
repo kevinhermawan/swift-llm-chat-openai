@@ -206,3 +206,9 @@ Task {
 ```
 
 To learn more about structured outputs, check out the [OpenAI documentation](https://platform.openai.com/docs/guides/structured-outputs/introduction).
+
+## Related Packages
+
+- [swift-ai-model-retriever](https://github.com/kevinhermawan/swift-ai-model-retriever)
+- [swift-json-schema](https://github.com/kevinhermawan/swift-json-schema)
+- [swift-llm-chat-anthropic](https://github.com/kevinhermawan/swift-llm-chat-anthropic)

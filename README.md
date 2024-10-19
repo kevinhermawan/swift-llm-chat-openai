@@ -236,6 +236,12 @@ Task {
 
 To learn more about structured outputs, check out the [OpenAI documentation](https://platform.openai.com/docs/guides/structured-outputs/introduction).
 
+## Related Packages
+
+- [swift-ai-model-retriever](https://github.com/kevinhermawan/swift-ai-model-retriever)
+- [swift-json-schema](https://github.com/kevinhermawan/swift-json-schema)
+- [swift-llm-chat-anthropic](https://github.com/kevinhermawan/swift-llm-chat-anthropic)
+
 ## Support
 
 If you find `LLMChatOpenAI` helpful and would like to support its development, consider making a donation. Your contribution helps maintain the project and develop new features.
