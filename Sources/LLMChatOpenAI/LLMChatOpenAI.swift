@@ -30,9 +30,23 @@ public struct LLMChatOpenAI {
         self.endpoint = endpoint ?? URL(string: "https://api.openai.com/v1/chat/completions")!
         self.headers = headers
     }
+    
+    var allHeaders: [String: String] {
+        var defaultHeaders = [
+            "Content-Type": "application/json",
+            "Authorization": "Bearer \(apiKey)"
+        ]
+        
+        if let headers {
+            defaultHeaders.merge(headers) { _, new in new }
+        }
+        
+        return defaultHeaders
+    }
 }
 
-extension LLMChatOpenAI {
+// MARK: - Send
+public extension LLMChatOpenAI {
     /// Sends a chat completion request.
     ///
     /// - Parameters:
@@ -41,7 +55,7 @@ extension LLMChatOpenAI {
     ///   - options: Optional ``ChatOptions`` that customize the completion request.
     ///
     /// - Returns: A ``ChatCompletion`` object that contains the API's response.
-    public func send(model: String, messages: [ChatMessage], options: ChatOptions? = nil) async throws -> ChatCompletion {
+    func send(model: String, messages: [ChatMessage], options: ChatOptions? = nil) async throws -> ChatCompletion {
         let body = RequestBody(stream: false, model: model, messages: messages, options: options)
         
         return try await performRequest(with: body)
@@ -57,7 +71,7 @@ extension LLMChatOpenAI {
     /// - Returns: A ``ChatCompletion`` object that contains the API's response.
     ///
     /// - Note: This method enables fallback functionality when using OpenRouter. For other providers, only the first model in the array will be used.
-    public func send(models: [String], messages: [ChatMessage], options: ChatOptions? = nil) async throws -> ChatCompletion {
+    func send(models: [String], messages: [ChatMessage], options: ChatOptions? = nil) async throws -> ChatCompletion {
         let body: RequestBody
         
         if isSupportFallbackModel {
@@ -68,7 +82,10 @@ extension LLMChatOpenAI {
         
         return try await performRequest(with: body)
     }
-    
+}
+
+// MARK: - Stream
+public extension LLMChatOpenAI {
     /// Streams a chat completion request.
     ///
     /// - Parameters:
@@ -77,7 +94,7 @@ extension LLMChatOpenAI {
     ///   - options: Optional ``ChatOptions`` that customize the completion request.
     ///
     /// - Returns: An `AsyncThrowingStream` of ``ChatCompletionChunk`` objects.
-    public func stream(model: String, messages: [ChatMessage], options: ChatOptions? = nil) -> AsyncThrowingStream<ChatCompletionChunk, Error> {
+    func stream(model: String, messages: [ChatMessage], options: ChatOptions? = nil) -> AsyncThrowingStream<ChatCompletionChunk, Error> {
         let body = RequestBody(stream: true, model: model, messages: messages, options: options)
         
         return performStreamRequest(with: body)
@@ -93,7 +110,7 @@ extension LLMChatOpenAI {
     /// - Returns: An `AsyncThrowingStream` of ``ChatCompletionChunk`` objects.
     ///
     /// - Note: This method enables fallback functionality when using OpenRouter. For other providers, only the first model in the array will be used.
-    public func stream(models: [String], messages: [ChatMessage], options: ChatOptions? = nil) -> AsyncThrowingStream<ChatCompletionChunk, Error> {
+    func stream(models: [String], messages: [ChatMessage], options: ChatOptions? = nil) -> AsyncThrowingStream<ChatCompletionChunk, Error> {
         let body: RequestBody
         
         if isSupportFallbackModel {
@@ -104,22 +121,58 @@ extension LLMChatOpenAI {
         
         return performStreamRequest(with: body)
     }
-    
-    private func performRequest(with body: RequestBody) async throws -> ChatCompletion {
-        let request = try createRequest(for: endpoint, with: body)
-        let (data, response) = try await URLSession.shared.data(for: request)
-        try validateHTTPResponse(response)
+}
+
+// MARK: - Helpers
+private extension LLMChatOpenAI {
+    func createRequest(for url: URL, with body: RequestBody) throws -> URLRequest {
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.httpBody = try JSONEncoder().encode(body)
+        request.allHTTPHeaderFields = allHeaders
         
-        return try JSONDecoder().decode(ChatCompletion.self, from: data)
+        return request
     }
     
-    private func performStreamRequest(with body: RequestBody) -> AsyncThrowingStream<ChatCompletionChunk, Error> {
+    func performRequest(with body: RequestBody) async throws -> ChatCompletion {
+        do {
+            let request = try createRequest(for: endpoint, with: body)
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let errorResponse = try? JSONDecoder().decode(ChatCompletionError.self, from: data) {
+                throw LLMChatOpenAIError.serverError(errorResponse.error.message)
+            }
+            
+            guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
+                throw LLMChatOpenAIError.badServerResponse
+            }
+            
+            return try JSONDecoder().decode(ChatCompletion.self, from: data)
+        } catch let error as LLMChatOpenAIError {
+            throw error
+        } catch {
+            throw LLMChatOpenAIError.networkError(error)
+        }
+    }
+    
+    func performStreamRequest(with body: RequestBody) -> AsyncThrowingStream<ChatCompletionChunk, Error> {
         AsyncThrowingStream { continuation in
             Task {
                 do {
                     let request = try createRequest(for: endpoint, with: body)
                     let (bytes, response) = try await URLSession.shared.bytes(for: request)
-                    try validateHTTPResponse(response)
+                    
+                    guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
+                        for try await line in bytes.lines {
+                            if let data = line.data(using: .utf8), let errorResponse = try? JSONDecoder().decode(ChatCompletionError.self, from: data) {
+                                throw LLMChatOpenAIError.serverError(errorResponse.error.message)
+                            }
+                            
+                            break
+                        }
+                        
+                        throw LLMChatOpenAIError.badServerResponse
+                    }
                     
                     for try await line in bytes.lines {
                         if line.hasPrefix("data: ") {
@@ -138,41 +191,12 @@ extension LLMChatOpenAI {
                     }
                     
                     continuation.finish()
-                } catch {
+                } catch let error as LLMChatOpenAIError {
                     continuation.finish(throwing: error)
+                } catch {
+                    continuation.finish(throwing: LLMChatOpenAIError.networkError(error))
                 }
             }
-        }
-    }
-}
-
-// MARK: - Helper Methods
-private extension LLMChatOpenAI {
-    var allHeaders: [String: String] {
-        var defaultHeaders = [
-            "Content-Type": "application/json",
-            "Authorization": "Bearer \(apiKey)"
-        ]
-        
-        if let headers {
-            defaultHeaders.merge(headers) { _, new in new }
-        }
-        
-        return defaultHeaders
-    }
-    
-    func createRequest(for url: URL, with body: RequestBody) throws -> URLRequest {
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.httpBody = try JSONEncoder().encode(body)
-        request.allHTTPHeaderFields = allHeaders
-        
-        return request
-    }
-    
-    func validateHTTPResponse(_ response: URLResponse) throws {
-        guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
-            throw URLError(.badServerResponse)
         }
     }
 }
@@ -226,6 +250,14 @@ private extension LLMChatOpenAI {
         enum CodingKeys: String, CodingKey {
             case stream, model, models, route, messages
             case streamOptions = "stream_options"
+        }
+    }
+    
+    struct ChatCompletionError: Codable {
+        let error: Error
+        
+        struct Error: Codable {
+            public let message: String
         }
     }
 }

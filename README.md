@@ -236,6 +236,35 @@ Task {
 
 To learn more about structured outputs, check out the [OpenAI documentation](https://platform.openai.com/docs/guides/structured-outputs/introduction).
 
+### Error Handling
+
+`LLMChatOpenAI` provides structured error handling through the `LLMChatOpenAIError` enum. This enum contains three cases that represent different types of errors you might encounter:
+
+```swift
+let messages = [
+    ChatMessage(role: .system, content: "You are a helpful assistant."),
+    ChatMessage(role: .user, content: "What is the capital of Indonesia?")
+]
+
+do {
+    let completion = try await chat.send(model: "gpt-4o", messages: messages)
+
+    print(completion.choices.first?.message.content ?? "No response")
+} catch let error as LLMChatOpenAIError {
+    switch error {
+    case .serverError(let message):
+        // Handle server-side errors (e.g., invalid API key, rate limits)
+        print("Server Error: \(message)")
+    case .networkError(let error):
+        // Handle network-related errors (e.g., no internet connection)
+        print("Network Error: \(error.localizedDescription)")
+    case .badServerResponse:
+        // Handle invalid server responses
+        print("Invalid response received from server")
+    }
+}
+```
+
 ## Related Packages
 
 - [swift-ai-model-retriever](https://github.com/kevinhermawan/swift-ai-model-retriever)

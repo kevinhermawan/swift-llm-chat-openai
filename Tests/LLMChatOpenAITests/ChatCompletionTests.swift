@@ -37,7 +37,7 @@ final class ChatCompletionTests: XCTestCase {
     }
     
     func testSendChatCompletion() async throws {
-        let mockResponseString = """
+        let mockResponse = """
         {
             "id": "chatcmpl-123",
             "object": "chat.completion",
@@ -61,7 +61,7 @@ final class ChatCompletionTests: XCTestCase {
         }
         """
         
-        URLProtocolMock.mockData = mockResponseString.data(using: .utf8)
+        URLProtocolMock.mockData = mockResponse.data(using: .utf8)
         let completion = try await chat.send(model: "gpt-4o", messages: messages)
         let choice = completion.choices.first
         let message = choice?.message
@@ -99,7 +99,7 @@ final class ChatCompletionTests: XCTestCase {
     }
     
     func testSendChatCompletionWithFallbackModels() async throws {
-        let mockResponseString = """
+        let mockResponse = """
         {
             "id": "chatcmpl-123",
             "object": "chat.completion",
@@ -123,7 +123,7 @@ final class ChatCompletionTests: XCTestCase {
         }
         """
         
-        URLProtocolMock.mockData = mockResponseString.data(using: .utf8)
+        URLProtocolMock.mockData = mockResponse.data(using: .utf8)
         let completion = try await chat.send(models: ["openai/gpt-4o", "mistralai/mixtral-8x7b-instruct"], messages: messages)
         let choice = completion.choices.first
         let message = choice?.message
@@ -158,5 +158,100 @@ final class ChatCompletionTests: XCTestCase {
         }
         
         XCTAssertEqual(receivedContent, "The capital of Indonesia is Jakarta.")
+    }
+}
+
+// MARK: - Error Handling
+extension ChatCompletionTests {
+    func testServerError() async throws {
+        let mockErrorResponse = """
+        {
+            "error": {
+                "message": "Invalid API key provided"
+            }
+        }
+        """
+        
+        URLProtocolMock.mockData = mockErrorResponse.data(using: .utf8)
+        
+        do {
+            _ = try await chat.send(model: "gpt-4", messages: messages)
+            
+            XCTFail("Expected serverError to be thrown")
+        } catch let error as LLMChatOpenAIError {
+            switch error {
+            case .serverError(let message):
+                XCTAssertEqual(message, "Invalid API key provided")
+            default:
+                XCTFail("Expected serverError but got \(error)")
+            }
+        }
+    }
+    
+    func testNetworkError() async throws {
+        URLProtocolMock.mockError = NSError(
+            domain: NSURLErrorDomain,
+            code: NSURLErrorNotConnectedToInternet,
+            userInfo: [NSLocalizedDescriptionKey: "The Internet connection appears to be offline."]
+        )
+        
+        do {
+            _ = try await chat.send(model: "gpt-4", messages: messages)
+            
+            XCTFail("Expected networkError to be thrown")
+        } catch let error as LLMChatOpenAIError {
+            switch error {
+            case .networkError(let underlyingError):
+                XCTAssertEqual((underlyingError as NSError).code, NSURLErrorNotConnectedToInternet)
+            default:
+                XCTFail("Expected networkError but got \(error)")
+            }
+        }
+    }
+    
+    func testStreamServerError() async throws {
+        let mockErrorResponse = """
+        {
+            "error": {
+                "message": "Rate limit exceeded"
+            }
+        }
+        """
+        
+        URLProtocolMock.mockStreamData = [mockErrorResponse]
+        
+        do {
+            for try await _ in chat.stream(model: "gpt-4", messages: messages) {
+                XCTFail("Expected serverError to be thrown")
+            }
+        } catch let error as LLMChatOpenAIError {
+            switch error {
+            case .serverError(let message):
+                XCTAssertEqual(message, "Rate limit exceeded")
+            default:
+                XCTFail("Expected serverError but got \(error)")
+            }
+        }
+    }
+    
+    func testStreamNetworkError() async throws {
+        URLProtocolMock.mockError = NSError(
+            domain: NSURLErrorDomain,
+            code: NSURLErrorNotConnectedToInternet,
+            userInfo: [NSLocalizedDescriptionKey: "The Internet connection appears to be offline."]
+        )
+        
+        do {
+            for try await _ in chat.stream(model: "gpt-4", messages: messages) {
+                XCTFail("Expected networkError to be thrown")
+            }
+        } catch let error as LLMChatOpenAIError {
+            switch error {
+            case .networkError(let underlyingError):
+                XCTAssertEqual((underlyingError as NSError).code, NSURLErrorNotConnectedToInternet)
+            default:
+                XCTFail("Expected networkError but got \(error)")
+            }
+        }
     }
 }
