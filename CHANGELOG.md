@@ -1,3 +1,9 @@
+# 1.1.2
+
+- docs: adds related packages section by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/10
+- feat: adds type aliases by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/11
+- improve: adds better error handling by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/12
+
 # 1.1.1
 
 - docs: adds more information in advanced usage by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/8
