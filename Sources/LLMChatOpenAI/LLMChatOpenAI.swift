@@ -31,7 +31,7 @@ public struct LLMChatOpenAI {
         self.headers = headers
     }
     
-    var allHeaders: [String: String] {
+    private var allHeaders: [String: String] {
         var defaultHeaders = [
             "Content-Type": "application/json",
             "Authorization": "Bearer \(apiKey)"
