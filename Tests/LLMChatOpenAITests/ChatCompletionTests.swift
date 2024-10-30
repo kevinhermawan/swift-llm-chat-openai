@@ -23,6 +23,7 @@ final class ChatCompletionTests: XCTestCase {
         ]
         
         URLProtocol.registerClass(URLProtocolMock.self)
+        URLProtocolMock.reset()
     }
     
     override func tearDown() {
@@ -175,7 +176,7 @@ extension ChatCompletionTests {
         URLProtocolMock.mockData = mockErrorResponse.data(using: .utf8)
         
         do {
-            _ = try await chat.send(model: "gpt-4", messages: messages)
+            _ = try await chat.send(model: "gpt-4o", messages: messages)
             
             XCTFail("Expected serverError to be thrown")
         } catch let error as LLMChatOpenAIError {
@@ -196,7 +197,7 @@ extension ChatCompletionTests {
         )
         
         do {
-            _ = try await chat.send(model: "gpt-4", messages: messages)
+            _ = try await chat.send(model: "gpt-4o", messages: messages)
             
             XCTFail("Expected networkError to be thrown")
         } catch let error as LLMChatOpenAIError {
@@ -209,49 +210,163 @@ extension ChatCompletionTests {
         }
     }
     
-    func testStreamServerError() async throws {
-        let mockErrorResponse = """
-        {
-            "error": {
-                "message": "Rate limit exceeded"
-            }
-        }
-        """
-        
-        URLProtocolMock.mockStreamData = [mockErrorResponse]
+    func testHTTPError() async throws {
+        URLProtocolMock.mockStatusCode = 429
+        URLProtocolMock.mockData = "Rate limit exceeded".data(using: .utf8)
         
         do {
-            for try await _ in chat.stream(model: "gpt-4", messages: messages) {
-                XCTFail("Expected serverError to be thrown")
-            }
+            _ = try await chat.send(model: "gpt-4o", messages: messages)
+            
+            XCTFail("Expected serverError to be thrown")
         } catch let error as LLMChatOpenAIError {
             switch error {
             case .serverError(let message):
-                XCTAssertEqual(message, "Rate limit exceeded")
+                XCTAssertTrue(message.contains("429"))
             default:
                 XCTFail("Expected serverError but got \(error)")
             }
         }
     }
     
-    func testStreamNetworkError() async throws {
-        URLProtocolMock.mockError = NSError(
-            domain: NSURLErrorDomain,
-            code: NSURLErrorNotConnectedToInternet,
-            userInfo: [NSLocalizedDescriptionKey: "The Internet connection appears to be offline."]
-        )
+    func testDecodingError() async throws {
+        let invalidJSON = "{ invalid json }"
+        URLProtocolMock.mockData = invalidJSON.data(using: .utf8)
         
         do {
-            for try await _ in chat.stream(model: "gpt-4", messages: messages) {
+            _ = try await chat.send(model: "gpt-4o", messages: messages)
+            
+            XCTFail("Expected decodingError to be thrown")
+        } catch let error as LLMChatOpenAIError {
+            switch error {
+            case .decodingError:
+                break
+            default:
+                XCTFail("Expected decodingError but got \(error)")
+            }
+        }
+    }
+    
+    func testCancellation() async throws {
+        let task = Task {
+            _ = try await chat.send(model: "gpt-4o", messages: messages)
+        }
+        
+        task.cancel()
+        
+        do {
+            _ = try await task.value
+            
+            XCTFail("Expected cancelled error to be thrown")
+        } catch let error as LLMChatOpenAIError {
+            switch error {
+            case .cancelled:
+                break
+            default:
+                XCTFail("Expected cancelled but got \(error)")
+            }
+        }
+    }
+}
+
+// MARK: - Error Handling (Stream)
+extension ChatCompletionTests {
+    func testStreamServerError() async throws {
+        URLProtocolMock.mockStreamData = ["data: {\"error\": {\"message\": \"Server error occurred\", \"type\": \"server_error\", \"code\": \"internal_error\"}}\n\n"]
+        
+        do {
+            for try await _ in chat.stream(model: "gpt-4o", messages: messages) {
+                XCTFail("Expected streamError to be thrown")
+            }
+        } catch let error as LLMChatOpenAIError {
+            switch error {
+            case .streamError:
+                break
+            default:
+                XCTFail("Expected streamError but got \(error)")
+            }
+        }
+    }
+    
+    func testStreamNetworkError() async throws {
+        let networkError = NSError(
+            domain: NSURLErrorDomain,
+            code: NSURLErrorNetworkConnectionLost,
+            userInfo: [NSLocalizedDescriptionKey: "The network connection was lost."]
+        )
+        
+        URLProtocolMock.mockError = networkError
+        
+        do {
+            for try await _ in chat.stream(model: "gpt-4o", messages: messages) {
                 XCTFail("Expected networkError to be thrown")
             }
         } catch let error as LLMChatOpenAIError {
             switch error {
             case .networkError(let underlyingError):
-                XCTAssertEqual((underlyingError as NSError).code, NSURLErrorNotConnectedToInternet)
+                XCTAssertEqual((underlyingError as NSError).code, NSURLErrorNetworkConnectionLost)
             default:
                 XCTFail("Expected networkError but got \(error)")
             }
         }
+    }
+    
+    func testStreamHTTPError() async throws {
+        URLProtocolMock.mockStatusCode = 503
+        URLProtocolMock.mockStreamData = [""]
+        
+        do {
+            for try await _ in chat.stream(model: "gpt-4o", messages: messages) {
+                XCTFail("Expected serverError to be thrown")
+            }
+        } catch let error as LLMChatOpenAIError {
+            switch error {
+            case .serverError(let message):
+                XCTAssertTrue(message.contains("503"))
+            default:
+                XCTFail("Expected serverError but got \(error)")
+            }
+        }
+    }
+    
+    func testStreamDecodingError() async throws {
+        URLProtocolMock.mockStreamData = ["data: { invalid json }\n\n"]
+        
+        do {
+            for try await _ in chat.stream(model: "gpt-4o", messages: messages) {
+                XCTFail("Expected decodingError to be thrown")
+            }
+        } catch let error as LLMChatOpenAIError {
+            switch error {
+            case .decodingError:
+                break
+            default:
+                XCTFail("Expected decodingError but got \(error)")
+            }
+        }
+    }
+    
+    func testStreamCancellation() async throws {
+        URLProtocolMock.mockStreamData = Array(repeating: "data: {\"id\":\"chatcmpl-123\",\"object\":\"chat.completion.chunk\",\"created\":1694268190,\"model\":\"gpt-3.5-turbo-0613\",\"choices\":[{\"index\":0,\"delta\":{\"content\":\"test\"},\"finish_reason\":null}]}\n\n", count: 1000)
+        
+        let expectation = XCTestExpectation(description: "Stream cancelled")
+        
+        let task = Task {
+            do {
+                for try await _ in chat.stream(model: "gpt-4o", messages: messages) {
+                    try await Task.sleep(nanoseconds: 100_000_000) // 1 second
+                }
+                
+                XCTFail("Expected stream to be cancelled")
+            } catch is CancellationError {
+                expectation.fulfill()
+            } catch {
+                XCTFail("Expected CancellationError but got \(error)")
+            }
+        }
+        
+        try await Task.sleep(nanoseconds: 1_000_000_000) // 1 second
+        task.cancel()
+        
+        await fulfillment(of: [expectation], timeout: 5.0)
     }
 }

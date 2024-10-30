@@ -8,29 +8,25 @@
 import Foundation
 
 /// An enum that represents errors from the chat completion request.
-public enum LLMChatOpenAIError: LocalizedError, Sendable {
-    /// A case that represents a server-side error response.
+public enum LLMChatOpenAIError: Error, Sendable {
+    /// An error that occurs during JSON decoding.
     ///
-    /// - Parameter message: The error message from the server.
-    case serverError(String)
+    /// - Parameter error: The underlying decoding error.
+    case decodingError(Error)
     
-    /// A case that represents a network-related error.
+    /// An error that occurs during network operations.
     ///
     /// - Parameter error: The underlying network error.
     case networkError(Error)
     
-    /// A case that represents an invalid server response.
-    case badServerResponse
+    /// An error returned by the server.
+    ///
+    /// - Parameter message: The error message received from the server.
+    case serverError(String)
     
-    /// A localized message that describes the error.
-    public var errorDescription: String? {
-        switch self {
-        case .serverError(let error):
-            return error
-        case .networkError(let error):
-            return error.localizedDescription
-        case .badServerResponse:
-            return "Invalid response received from server"
-        }
-    }
+    /// An error that occurs during stream processing.
+    case streamError
+    
+    /// An error that occurs when the request is cancelled.
+    case cancelled
 }
