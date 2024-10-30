@@ -20,6 +20,9 @@ struct ChatView: View {
     @State private var outputTokens: Int = 0
     @State private var totalTokens: Int = 0
     
+    @State private var isGenerating: Bool = false
+    @State private var generationTask: Task<Void, Never>?
+    
     var body: some View {
         @Bindable var viewModelBindable = viewModel
         
@@ -37,8 +40,11 @@ struct ChatView: View {
             }
             
             VStack {
-                SendButton(stream: viewModel.stream, onSend: onSend, onStream: onStream)
-                    .disabled(viewModel.models.isEmpty)
+                if isGenerating {
+                    CancelButton(onCancel: { generationTask?.cancel() })
+                } else {
+                    SendButton(stream: viewModel.stream, onSend: onSend, onStream: onStream)
+                }
             }
         }
         .toolbar {
@@ -64,6 +70,8 @@ struct ChatView: View {
     private func onSend() {
         clear()
         
+        isGenerating = true
+        
         let messages = [
             ChatMessage(role: .system, content: viewModel.systemPrompt),
             ChatMessage(role: .user, content: prompt)
@@ -71,8 +79,13 @@ struct ChatView: View {
         
         let options = ChatOptions(temperature: viewModel.temperature)
         
-        Task {
+        generationTask = Task {
             do {
+                defer {
+                    self.isGenerating = false
+                    self.generationTask = nil
+                }
+                
                 let completion = try await viewModel.chat.send(model: viewModel.selectedModel, messages: messages, options: options)
                 
                 if let content = completion.choices.first?.message.content {
@@ -85,13 +98,15 @@ struct ChatView: View {
                     self.totalTokens = usage.totalTokens
                 }
             } catch {
-                print(String(describing: error))
+                print(error)
             }
         }
     }
     
     private func onStream() {
         clear()
+        
+        isGenerating = true
         
         let messages = [
             ChatMessage(role: .system, content: viewModel.systemPrompt),
@@ -100,8 +115,13 @@ struct ChatView: View {
         
         let options = ChatOptions(temperature: viewModel.temperature)
         
-        Task {
+        generationTask = Task {
             do {
+                defer {
+                    self.isGenerating = false
+                    self.generationTask = nil
+                }
+                
                 for try await chunk in viewModel.chat.stream(model: viewModel.selectedModel, messages: messages, options: options) {
                     if let content = chunk.choices.first?.delta.content {
                         self.response += content
@@ -114,7 +134,7 @@ struct ChatView: View {
                     }
                 }
             } catch {
-                print(String(describing: error))
+                print(error)
             }
         }
     }

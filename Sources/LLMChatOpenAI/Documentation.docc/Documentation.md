@@ -229,10 +229,19 @@ do {
     case .networkError(let error):
         // Handle network-related errors (e.g., no internet connection)
         print("Network Error: \(error.localizedDescription)")
-    case .badServerResponse:
-        // Handle invalid server responses
-        print("Invalid response received from server")
+    case .decodingError(let error):
+        // Handle errors that occur when the response cannot be decoded
+        print("Decoding Error: \(error.localizedDescription)")
+    case .streamError:
+        // Handle errors that occur when streaming responses
+        print("Stream Error")
+    case .cancelled:
+        // Handle requests that are cancelled
+        print("Request was cancelled")
     }
+} catch {
+    // Handle any other errors
+    print("An unexpected error occurred: \(error)")
 }
 ```
 

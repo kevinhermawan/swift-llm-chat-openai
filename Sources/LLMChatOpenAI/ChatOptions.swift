@@ -189,7 +189,7 @@ public struct ChatOptions: Encodable, Sendable {
         }
     }
     
-    public struct Tool: Encodable {
+    public struct Tool: Encodable, Sendable {
         /// The type of the tool. Currently, only function is supported.
         public let type: String
         
@@ -201,7 +201,7 @@ public struct ChatOptions: Encodable, Sendable {
             self.function = function
         }
         
-        public struct Function: Encodable {
+        public struct Function: Encodable, Sendable {
             /// The name of the function to be called. Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
             public let name: String
             
@@ -240,7 +240,7 @@ public struct ChatOptions: Encodable, Sendable {
         }
     }
     
-    public enum ToolChoice: Encodable {
+    public enum ToolChoice: Encodable, Sendable {
         case none
         case auto
         case function(name: String)

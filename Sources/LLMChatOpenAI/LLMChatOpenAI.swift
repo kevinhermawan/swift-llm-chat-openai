@@ -139,15 +139,26 @@ private extension LLMChatOpenAI {
             let request = try createRequest(for: endpoint, with: body)
             let (data, response) = try await URLSession.shared.data(for: request)
             
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw LLMChatOpenAIError.serverError(response.description)
+            }
+            
+            // Check for API errors first, as they might come with 200 status
             if let errorResponse = try? JSONDecoder().decode(ChatCompletionError.self, from: data) {
                 throw LLMChatOpenAIError.serverError(errorResponse.error.message)
             }
             
-            guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
-                throw LLMChatOpenAIError.badServerResponse
+            guard 200...299 ~= httpResponse.statusCode else {
+                throw LLMChatOpenAIError.serverError(response.description)
             }
             
             return try JSONDecoder().decode(ChatCompletion.self, from: data)
+        } catch is CancellationError {
+            throw LLMChatOpenAIError.cancelled
+        } catch let error as URLError where error.code == .cancelled {
+            throw LLMChatOpenAIError.cancelled
+        } catch let error as DecodingError {
+            throw LLMChatOpenAIError.decodingError(error)
         } catch let error as LLMChatOpenAIError {
             throw error
         } catch {
@@ -157,45 +168,57 @@ private extension LLMChatOpenAI {
     
     func performStreamRequest(with body: RequestBody) -> AsyncThrowingStream<ChatCompletionChunk, Error> {
         AsyncThrowingStream { continuation in
-            Task {
-                do {
-                    let request = try createRequest(for: endpoint, with: body)
-                    let (bytes, response) = try await URLSession.shared.bytes(for: request)
-                    
-                    guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
-                        for try await line in bytes.lines {
-                            if let data = line.data(using: .utf8), let errorResponse = try? JSONDecoder().decode(ChatCompletionError.self, from: data) {
-                                throw LLMChatOpenAIError.serverError(errorResponse.error.message)
-                            }
-                            
-                            break
+            let task = Task {
+                await withTaskCancellationHandler {
+                    do {
+                        let request = try createRequest(for: endpoint, with: body)
+                        let (bytes, response) = try await URLSession.shared.bytes(for: request)
+                        
+                        guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
+                            throw LLMChatOpenAIError.serverError(response.description)
                         }
                         
-                        throw LLMChatOpenAIError.badServerResponse
-                    }
-                    
-                    for try await line in bytes.lines {
-                        if line.hasPrefix("data: ") {
-                            let jsonString = line.dropFirst(6)
+                        for try await line in bytes.lines {
+                            try Task.checkCancellation()
                             
-                            if jsonString.trimmingCharacters(in: .whitespacesAndNewlines) == "[DONE]" {
+                            guard line.hasPrefix("data: ") else { continue }
+                            
+                            let jsonString = line.dropFirst(6).trimmingCharacters(in: .whitespacesAndNewlines)
+                            
+                            if jsonString == "[DONE]" {
                                 break
                             }
                             
-                            if let data = jsonString.data(using: .utf8) {
-                                let chunk = try JSONDecoder().decode(ChatCompletionChunk.self, from: data)
-                                
-                                continuation.yield(chunk)
+                            guard let data = jsonString.data(using: .utf8) else { continue }
+                            
+                            guard (try? JSONDecoder().decode(ChatCompletionError.self, from: data)) == nil else {
+                                throw LLMChatOpenAIError.streamError
                             }
+                            
+                            let chunk = try JSONDecoder().decode(ChatCompletionChunk.self, from: data)
+                            
+                            continuation.yield(chunk)
                         }
+                        
+                        continuation.finish()
+                    } catch is CancellationError {
+                        continuation.finish(throwing: LLMChatOpenAIError.cancelled)
+                    } catch let error as URLError where error.code == .cancelled {
+                        continuation.finish(throwing: LLMChatOpenAIError.cancelled)
+                    } catch let error as DecodingError {
+                        continuation.finish(throwing: LLMChatOpenAIError.decodingError(error))
+                    } catch let error as LLMChatOpenAIError {
+                        continuation.finish(throwing: error)
+                    } catch {
+                        continuation.finish(throwing: LLMChatOpenAIError.networkError(error))
                     }
-                    
-                    continuation.finish()
-                } catch let error as LLMChatOpenAIError {
-                    continuation.finish(throwing: error)
-                } catch {
-                    continuation.finish(throwing: LLMChatOpenAIError.networkError(error))
+                } onCancel: {
+                    continuation.finish(throwing: LLMChatOpenAIError.cancelled)
                 }
+            }
+            
+            continuation.onTermination = { @Sendable _ in
+                task.cancel()
             }
         }
     }

@@ -11,6 +11,7 @@ final class URLProtocolMock: URLProtocol {
     static var mockData: Data?
     static var mockStreamData: [String]?
     static var mockError: Error?
+    static var mockStatusCode: Int?
     
     override class func canInit(with request: URLRequest) -> Bool {
         return true
@@ -28,19 +29,18 @@ final class URLProtocolMock: URLProtocol {
             return
         }
         
-        if let streamData = URLProtocolMock.mockStreamData {
-            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: ["Content-Type": "text/event-stream"])!
+        if let streamData = URLProtocolMock.mockStreamData, let url = request.url {
+            let response = HTTPURLResponse(url: url, statusCode: URLProtocolMock.mockStatusCode ?? 200, httpVersion: nil, headerFields: ["Content-Type": "text/event-stream"])!
             client.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             
             for line in streamData {
                 client.urlProtocol(self, didLoad: Data(line.utf8))
             }
-        } else if let data = URLProtocolMock.mockData {
-            let response = HTTPURLResponse(url: request.url!, statusCode: 200, httpVersion: nil, headerFields: nil)!
+        } else if let data = URLProtocolMock.mockData, let url = request.url {
+            let response = HTTPURLResponse(url: url, statusCode: URLProtocolMock.mockStatusCode ?? 200, httpVersion: nil, headerFields: nil)!
             client.urlProtocol(self, didReceive: response, cacheStoragePolicy: .notAllowed)
             client.urlProtocol(self, didLoad: data)
         } else {
-            client.urlProtocol(self, didFailWithError: NSError(domain: "MockURLProtocol", code: -1, userInfo: [NSLocalizedDescriptionKey: "No mock data available"]))
             return
         }
         
@@ -48,4 +48,11 @@ final class URLProtocolMock: URLProtocol {
     }
     
     override func stopLoading() {}
+    
+    static func reset() {
+        mockData = nil
+        mockStreamData = nil
+        mockError = nil
+        mockStatusCode = nil
+    }
 }
