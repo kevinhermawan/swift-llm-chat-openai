@@ -1,5 +1,5 @@
 {
-  "originHash" : "7172a3f79f518d210e3e3d0402571927d2eec7848017ed81b4591457462765e0",
+  "originHash" : "7cf80a4b4902232e6d00899a52f8ffaa6e750ea08507cc8e810cf9b3200f2ca2",
   "pins" : [
     {
       "identity" : "swift-ai-model-retriever",
@@ -7,7 +7,7 @@
       "location" : "https://github.com/kevinhermawan/swift-ai-model-retriever.git",
       "state" : {
         "branch" : "main",
-        "revision" : "5d22906f1bedcb53452257c784ebffa72e9ad1cb"
+        "revision" : "b9cd7cd4a68969b4158a2a5a0bc59311028737da"
       }
     },
     {
@@ -15,8 +15,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/kevinhermawan/swift-json-schema.git",
       "state" : {
-        "revision" : "48cade5fb09c6fdc86adcf9af7e43a2c7582a65a",
-        "version" : "1.0.3"
+        "revision" : "4a9284e44d8ef2bfc863734e9ff535909ae6b27a",
+        "version" : "2.0.1"
       }
     }
   ],

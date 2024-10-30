@@ -9,7 +9,7 @@ import Foundation
 import JSONSchema
 
 /// A struct that represents the options of a chat completion request.
-public struct ChatOptions: Encodable {
+public struct ChatOptions: Encodable, Sendable {
     /// Number between -2.0 and 2.0.
     /// Positive values penalize new tokens based on their existing frequency in the text so far, decreasing the model's likelihood to repeat the same line verbatim.
     public let frequencyPenalty: Double?
@@ -118,7 +118,7 @@ public struct ChatOptions: Encodable {
         self.user = user
     }
     
-    public struct ResponseFormat: Encodable {
+    public struct ResponseFormat: Encodable, Sendable {
         /// The type of response format being defined.
         public let type: ResponseType
         
@@ -145,13 +145,13 @@ public struct ChatOptions: Encodable {
             case jsonSchema = "json_schema"
         }
         
-        public enum ResponseType: String, Codable, CaseIterable {
+        public enum ResponseType: String, Codable, Sendable, CaseIterable {
             case text
             case jsonObject = "json_object"
             case jsonSchema = "json_schema"
         }
         
-        public struct Schema: Encodable {
+        public struct Schema: Encodable, Sendable {
             /// The name of the response format.
             /// Must be a-z, A-Z, 0-9, or contain underscores and dashes, with a maximum length of 64.
             public let name: String

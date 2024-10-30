@@ -15,9 +15,10 @@ enum ServiceProvider: String, CaseIterable {
     case groq = "Groq"
 }
 
+@MainActor
 @Observable
 final class AppViewModel {
-    var stream: Bool = false
+    var stream: Bool = true
     var openaiAPIKey: String = ""
     var openRouterAPIKey: String = ""
     var groqAPIKey: String = ""
