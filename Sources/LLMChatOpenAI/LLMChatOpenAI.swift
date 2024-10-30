@@ -8,7 +8,7 @@
 import Foundation
 
 /// A struct that facilitates interactions with OpenAI and OpenAI-compatible chat completion APIs.
-public struct LLMChatOpenAI {
+public struct LLMChatOpenAI: Sendable {
     private let apiKey: String
     private let endpoint: URL
     private var headers: [String: String]? = nil

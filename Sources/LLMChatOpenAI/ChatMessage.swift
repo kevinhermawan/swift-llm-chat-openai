@@ -8,7 +8,7 @@
 import Foundation
 
 /// A struct that represents a message in a chat conversation.
-public struct ChatMessage: Encodable {
+public struct ChatMessage: Encodable, Sendable {
     /// The role of the message's author.
     public let role: Role
     
@@ -19,20 +19,20 @@ public struct ChatMessage: Encodable {
     /// Provides the model information to differentiate between participants of the same role.
     public let name: String?
     
-    public enum Role: String, Codable {
+    public enum Role: String, Encodable, Sendable {
         case system
         case user
         case assistant
     }
     
-    public enum Content: Encodable {
+    public enum Content: Encodable, Sendable {
         /// Text content of the message.
         case text(String)
         
         /// Image content of the message.
         case image(String, detail: ImageDetail = .auto)
         
-        public enum ImageDetail: String, Encodable, CaseIterable {
+        public enum ImageDetail: String, Encodable, Sendable, CaseIterable {
             /// High detail mode. The model first sees the low res image (using 85 tokens) and then creates detailed crops using 170 tokens for each 512px x 512px tile.
             case high
             
