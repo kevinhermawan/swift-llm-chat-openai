@@ -1,3 +1,9 @@
+# 1.2.0
+
+- chore: marks `allHeaders` as private by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/13
+- feat: conforms to `Sendable` by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/14
+- refactor: improves error handling by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/15
+
 # 1.1.2
 
 - docs: adds related packages section by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/10
