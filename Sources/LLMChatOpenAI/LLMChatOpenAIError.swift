@@ -21,8 +21,10 @@ public enum LLMChatOpenAIError: Error, Sendable {
     
     /// An error returned by the server.
     ///
-    /// - Parameter message: The error message received from the server.
-    case serverError(String)
+    /// - Parameters:
+    ///   - statusCode: The HTTP status code returned by the server.
+    ///   - message: The error message received from the server.
+    case serverError(statusCode: Int, message: String)
     
     /// An error that occurs during stream processing.
     case streamError

@@ -223,9 +223,9 @@ do {
     print(completion.choices.first?.message.content ?? "No response")
 } catch let error as LLMChatOpenAIError {
     switch error {
-    case .serverError(let message):
+    case .serverError(let statusCode, let message):
         // Handle server-side errors (e.g., invalid API key, rate limits)
-        print("Server Error: \(message)")
+        print("Server Error [\(statusCode)]: \(message)")
     case .networkError(let error):
         // Handle network-related errors (e.g., no internet connection)
         print("Network Error: \(error.localizedDescription)")

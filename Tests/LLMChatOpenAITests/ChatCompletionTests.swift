@@ -174,6 +174,7 @@ extension ChatCompletionTests {
         """
         
         URLProtocolMock.mockData = mockErrorResponse.data(using: .utf8)
+        URLProtocolMock.mockStatusCode = 401
         
         do {
             _ = try await chat.send(model: "gpt-4o", messages: messages)
@@ -181,7 +182,8 @@ extension ChatCompletionTests {
             XCTFail("Expected serverError to be thrown")
         } catch let error as LLMChatOpenAIError {
             switch error {
-            case .serverError(let message):
+            case .serverError(let statusCode, let message):
+                XCTAssertEqual(statusCode, 401)
                 XCTAssertEqual(message, "Invalid API key provided")
             default:
                 XCTFail("Expected serverError but got \(error)")
@@ -211,8 +213,8 @@ extension ChatCompletionTests {
     }
     
     func testHTTPError() async throws {
-        URLProtocolMock.mockStatusCode = 429
         URLProtocolMock.mockData = "Rate limit exceeded".data(using: .utf8)
+        URLProtocolMock.mockStatusCode = 429
         
         do {
             _ = try await chat.send(model: "gpt-4o", messages: messages)
@@ -220,7 +222,8 @@ extension ChatCompletionTests {
             XCTFail("Expected serverError to be thrown")
         } catch let error as LLMChatOpenAIError {
             switch error {
-            case .serverError(let message):
+            case .serverError(let statusCode, let message):
+                XCTAssertEqual(statusCode, 429)
                 XCTAssertTrue(message.contains("429"))
             default:
                 XCTFail("Expected serverError but got \(error)")
@@ -311,8 +314,8 @@ extension ChatCompletionTests {
     }
     
     func testStreamHTTPError() async throws {
-        URLProtocolMock.mockStatusCode = 503
         URLProtocolMock.mockStreamData = [""]
+        URLProtocolMock.mockStatusCode = 503
         
         do {
             for try await _ in chat.stream(model: "gpt-4o", messages: messages) {
@@ -320,7 +323,8 @@ extension ChatCompletionTests {
             }
         } catch let error as LLMChatOpenAIError {
             switch error {
-            case .serverError(let message):
+            case .serverError(let statusCode, let message):
+                XCTAssertEqual(statusCode, 503)
                 XCTAssertTrue(message.contains("503"))
             default:
                 XCTFail("Expected serverError but got \(error)")
