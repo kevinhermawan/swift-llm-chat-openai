@@ -1,3 +1,7 @@
+# 1.3.0
+
+- refactor: adds `statusCode` to `serverError` by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/16
+
 # 1.2.0
 
 - chore: marks `allHeaders` as private by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/13
