@@ -140,16 +140,16 @@ private extension LLMChatOpenAI {
             let (data, response) = try await URLSession.shared.data(for: request)
             
             guard let httpResponse = response as? HTTPURLResponse else {
-                throw LLMChatOpenAIError.serverError(response.description)
+                throw LLMChatOpenAIError.serverError(statusCode: 0, message: response.description)
             }
             
             // Check for API errors first, as they might come with 200 status
             if let errorResponse = try? JSONDecoder().decode(ChatCompletionError.self, from: data) {
-                throw LLMChatOpenAIError.serverError(errorResponse.error.message)
+                throw LLMChatOpenAIError.serverError(statusCode: httpResponse.statusCode, message: errorResponse.error.message)
             }
             
             guard 200...299 ~= httpResponse.statusCode else {
-                throw LLMChatOpenAIError.serverError(response.description)
+                throw LLMChatOpenAIError.serverError(statusCode: httpResponse.statusCode, message: response.description)
             }
             
             return try JSONDecoder().decode(ChatCompletion.self, from: data)
@@ -174,8 +174,12 @@ private extension LLMChatOpenAI {
                         let request = try createRequest(for: endpoint, with: body)
                         let (bytes, response) = try await URLSession.shared.bytes(for: request)
                         
-                        guard let httpResponse = response as? HTTPURLResponse, 200...299 ~= httpResponse.statusCode else {
-                            throw LLMChatOpenAIError.serverError(response.description)
+                        guard let httpResponse = response as? HTTPURLResponse else {
+                            throw LLMChatOpenAIError.serverError(statusCode: 0, message: response.description)
+                        }
+                        
+                        guard 200...299 ~= httpResponse.statusCode else {
+                            throw LLMChatOpenAIError.serverError(statusCode: httpResponse.statusCode, message: response.description)
                         }
                         
                         for try await line in bytes.lines {
