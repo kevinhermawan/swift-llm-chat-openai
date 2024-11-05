@@ -1,3 +1,7 @@
+# 1.3.1
+
+- feat: adds Predicted Outputs by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/17
+
 # 1.3.0
 
 - refactor: adds `statusCode` to `serverError` by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/16
