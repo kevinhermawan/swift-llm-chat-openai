@@ -199,6 +199,54 @@ Task {
 
 To learn more about function calling, check out the [OpenAI documentation](https://platform.openai.com/docs/guides/function-calling).
 
+#### Predicted Outputs
+
+```swift
+private let code = """
+/// <summary>
+/// Represents a user with a first name, last name, and username.
+/// </summary>
+public class User
+{
+  /// <summary>
+  /// Gets or sets the user's first name.
+  /// </summary>
+  public string FirstName { get; set; }
+
+  /// <summary>
+  /// Gets or sets the user's last name.
+  /// </summary>
+  public string LastName { get; set; }
+
+  /// <summary>
+  /// Gets or sets the user's username.
+  /// </summary>
+  public string Username { get; set; }
+}
+"""
+
+let messages = [
+   ChatMessage(role: .user, content: "Replace the Username property with an Email property. Respond only with code, and with no markdown formatting."),
+   ChatMessage(role: .user, content: code)
+]
+
+let options = ChatOptions(
+   prediction: .init(type: .content, content: code)
+)
+
+Task {
+   do {
+       let completion = try await chat.send(model: "gpt-4o", messages: messages, options: options)
+
+       print(completion.choices.first?.message.content ?? "")
+   } catch {
+       print(String(describing: error))
+   }
+}
+```
+
+To learn more about predicted outputs, check out the [OpenAI documentation](https://platform.openai.com/docs/guides/latency-optimization#use-predicted-outputs).
+
 #### Structured Outputs
 
 ```swift
