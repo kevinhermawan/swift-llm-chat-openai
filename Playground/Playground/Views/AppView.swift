@@ -30,6 +30,10 @@ struct AppView: View {
                             }
                             
                             if provider == .openai {
+                                NavigationLink("Predicted Outputs") {
+                                    PredictedOutputsView(provider: provider)
+                                }
+
                                 NavigationLink("Response Format") {
                                     ResponseFormatView(provider: provider)
                                 }

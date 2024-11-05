@@ -33,6 +33,10 @@ public struct ChatOptions: Encodable, Sendable {
     /// Note that you will be charged based on the number of generated tokens across all of the choices. Keep `n` as 1 to minimize costs.
     public let n: Int?
     
+    /// Configuration for a [Predicted Output](https://platform.openai.com/docs/guides/latency-optimization#use-predicted-outputs), which can greatly improve response times when large parts of the model response are known ahead of time.
+    /// This is most common when you are regenerating a file with only minor changes to most of the content.
+    public let prediction: Prediction?
+    
     /// Number between -2.0 and 2.0.
     /// Positive values penalize new tokens based on whether they appear in the text so far, increasing the model's likelihood to talk about new topics.
     public let presencePenalty: Double?
@@ -87,6 +91,7 @@ public struct ChatOptions: Encodable, Sendable {
         topLogprobs: Int? = nil,
         maxCompletionTokens: Int? = nil,
         n: Int? = nil,
+        prediction: Prediction? = nil,
         presencePenalty: Double? = nil,
         responseFormat: ResponseFormat? = nil,
         seed: Int? = nil,
@@ -105,6 +110,7 @@ public struct ChatOptions: Encodable, Sendable {
         self.topLogprobs = topLogprobs
         self.maxCompletionTokens = maxCompletionTokens
         self.n = n
+        self.prediction = prediction
         self.presencePenalty = presencePenalty
         self.responseFormat = responseFormat
         self.seed = seed
@@ -281,6 +287,7 @@ public struct ChatOptions: Encodable, Sendable {
         try container.encodeIfPresent(topLogprobs, forKey: .topLogprobs)
         try container.encodeIfPresent(maxCompletionTokens, forKey: .maxCompletionTokens)
         try container.encodeIfPresent(n, forKey: .n)
+        try container.encodeIfPresent(prediction, forKey: .prediction)
         try container.encodeIfPresent(presencePenalty, forKey: .presencePenalty)
         try container.encodeIfPresent(responseFormat, forKey: .responseFormat)
         try container.encodeIfPresent(seed, forKey: .seed)
@@ -301,6 +308,7 @@ public struct ChatOptions: Encodable, Sendable {
         case topLogprobs = "top_logprobs"
         case maxCompletionTokens = "max_completion_tokens"
         case n
+        case prediction
         case presencePenalty = "presence_penalty"
         case responseFormat = "response_format"
         case seed
@@ -312,5 +320,72 @@ public struct ChatOptions: Encodable, Sendable {
         case toolChoice = "tool_choice"
         case parallelToolCalls = "parallel_tool_calls"
         case user
+    }
+}
+
+// MARK: - Prediction
+extension ChatOptions {
+    public struct Prediction: Encodable, Sendable {
+        /// The type of the predicted content you want to provide. This type is currently always `.content`.
+        public let type: PredictionType
+        
+        private let content: String?
+        private let contents: [Content]?
+        
+        /// The content that should be matched when generating a model response. If generated tokens would match this content, the entire model response can be returned much more quickly.
+        public struct Content: Encodable, Sendable {
+            /// The type of the content part.
+            public let type: String
+            
+            /// The text content.
+            public let text: String
+            
+            /// Initializes a new instance of ``Content``.
+            public init(type: String, text: String) {
+                self.type = type
+                self.text = text
+            }
+        }
+        
+        /// The type of the predicted content you want to provide.
+        public enum PredictionType: String, Encodable, Sendable {
+            case content
+        }
+        
+        /// Initializes a new instance of ``Prediction`` with a single content string.
+        /// - Parameters:
+        ///   - type: The type of the predicted content you want to provide. This type is currently always `.content`.
+        ///   - content: The content used for a Predicted Output. This is often the text of a file you are regenerating with minor changes.
+        public init(type: PredictionType, content: String) {
+            self.type = type
+            self.content = content
+            self.contents = nil
+        }
+        
+        /// Initializes a new instance of ``Prediction`` with an array of content parts with a defined type.
+        /// - Parameters:
+        ///   - type: The type of the predicted content you want to provide. This type is currently always `.content`.
+        ///   - content: An array of content parts with a defined type. Supported options differ based on the model being used to generate the response. Can contain text inputs.
+        public init(type: PredictionType, content: [Content]) {
+            self.type = type
+            self.content = nil
+            self.contents = content
+        }
+        
+        public func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(type, forKey: .type)
+            
+            if let content {
+                try container.encode(content, forKey: .content)
+            } else if let contents {
+                try container.encode(contents, forKey: .content)
+            }
+        }
+        
+        private enum CodingKeys: String, CodingKey {
+            case type
+            case content
+        }
     }
 }
