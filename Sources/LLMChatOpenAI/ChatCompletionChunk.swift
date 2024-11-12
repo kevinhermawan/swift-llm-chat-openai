@@ -10,7 +10,7 @@ import Foundation
 /// A struct that represents a streamed chunk of a chat completion response.
 public struct ChatCompletionChunk: Decodable, Sendable {
     /// A unique identifier for the chat completion. Each chunk has the same identifier.
-    public let id: String
+    public let id: String?
     
     /// An array of chat completion choices. Can contain more than one elements if `n` is greater than 1.
     public var choices: [Choice]
