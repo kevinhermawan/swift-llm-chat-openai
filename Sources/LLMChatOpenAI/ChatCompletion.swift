@@ -10,7 +10,7 @@ import Foundation
 /// A struct that represents a chat completion response.
 public struct ChatCompletion: Decodable, Sendable {
     /// A unique identifier for the chat completion.
-    public let id: String
+    public let id: String?
     
     /// An array of chat completion choices. Can be more than one if `n` is greater than 1.
     public let choices: [Choice]
