@@ -1,3 +1,7 @@
+# 1.3.2
+
+- refactor: makes the `id` in the `ChatCompletion` and `ChatCompletionChunk` optional by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/19
+
 # 1.3.1
 
 - feat: adds Predicted Outputs by @kevinhermawan in https://github.com/kevinhermawan/swift-llm-chat-openai/pull/17
