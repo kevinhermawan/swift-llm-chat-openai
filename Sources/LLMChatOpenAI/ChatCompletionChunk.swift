@@ -154,7 +154,7 @@ public struct ChatCompletionChunk: Decodable, Sendable {
         
         public struct CompletionTokensDetails: Decodable, Sendable {
             /// When using Predicted Outputs, the number of tokens in the prediction that appeared in the completion.
-            public let acceptedPredictionTokens: Int
+            public let acceptedPredictionTokens: Int?
             
             /// When using Predicted Outputs, the number of tokens in the prediction that did not appear in the completion.
             /// However, like reasoning tokens, these tokens are still counted in the total completion tokens for purposes of billing, output, and context window limits.
